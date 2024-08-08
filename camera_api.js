@@ -69,6 +69,7 @@ function startup() {
       var msg = new SpeechSynthesisUtterance();
       msg.text = description.innerHTML;
       window.speechSynthesis.speak(msg);
+      window.speechSynthesis.speak("");
       ev.preventDefault();
     }
   );
@@ -116,7 +117,7 @@ function componentToHex(c) {
 }
 
 function rgbToHex(r, g, b) {
-  return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+  return componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
 async function takepicture() {
@@ -127,7 +128,7 @@ async function takepicture() {
 
     const data = canvas.toDataURL("image/png"); //The actual image is here
 
-    const response = await fetch("https://vision.googleapis.com/v1/images:annotate?key=AIzaSyBgIWhU22594CAQG1GCLzIJ0ePG7Uml-zk", {
+    const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDPhakki1OiCDXPAB3ij9ZdD28QGMZhm-k`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -162,27 +163,29 @@ async function takepicture() {
 
     let hex = rgbToHex(red, green, blue);
 
-    let apiKey = config.OPEN_API_KEY;
+    async function getColorData(r, g, b) {
+      const response = await fetch(`https://www.thecolorapi.com/id?rgb=rgb(${r},${g},${b})`);
+      const colorData = await response.json();
+      return colorData.name.value;
+      ;
+    } 
 
-    const description = await fetch("https://api.openai.com/v1/completions", {
-      method: "POST",
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "text-davinci-003",
-        prompt: `can you describe this hexcode to a blind person ${hex} in 3 to 10 words, be as descriptive as possible. please dont mention the hex code. please include the name of the hue.`,
-        temperature: 0,
-        max_tokens: 7,
-      }),
-    });
-    const color_description = await description.json();
-    let words = color_description.choices[0].text;
+  const rgb = [red, green, blue];
 
+  try {
+    const colorName = await getColorData(rgb[0], rgb[1], rgb[2]);
+    console.log(`The color name is: ${colorName}`);
+    let hex = rgbToHex(red, green, blue);
+    console.log(`https://www.thecolorapi.com/id?hex=${hex}&format=svg`);
+
+    var fullMessage = colorName;
     var msg = new SpeechSynthesisUtterance();
-    msg.text = words;
+    msg.text = fullMessage;
     window.speechSynthesis.speak(msg);
+    
+  } catch (error) {
+    console.error('Error fetching color name:', error);
+  }
   } else {
     clearphoto();
   }
